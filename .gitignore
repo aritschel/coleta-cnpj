@@ -170,6 +170,7 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# CSV extension
+# Data extension
 empresa/empresa.csv
 *.csv
+Empresas9.zip
