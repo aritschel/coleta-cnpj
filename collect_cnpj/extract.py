@@ -26,9 +26,6 @@ def extract_files():
     zip.close()        
 
 
-extract_files()
-
-diretorio_original = os.getcwd()
 
 def change_file_name():
     try:
@@ -39,3 +36,9 @@ def change_file_name():
     finally:
         os.chdir(diretorio_original)
 
+
+extract_files()
+
+diretorio_original = os.getcwd()
+
+change_file_name()
