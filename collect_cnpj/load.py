@@ -1,13 +1,22 @@
-from utils.schema import empresas_schema
-from pyspark.sql import SparkSession
+from utils.schema import empresas_schema, socios_schema
+from utils.spark_session import init_spark
+from utils.helpers import set_file_name
+import pyspark.sql.functions as f
 
-spark = SparkSession.builder.appName("empresas").getOrCreate()
+data_base = "Socios9"
 
-empresas_df = spark.read.csv(
-    path="/workspaces/coleta-cnpj/empresa/empresa.csv",
-    schema=empresas_schema,
+data_type = ".csv"
+
+file_name = set_file_name(data_base, data_type)
+
+
+spark = init_spark(data_base)
+
+socios_df = spark.read.csv(
+    path=f"{data_base}/{file_name}",
+    schema=socios_schema,
     header=False,
     sep=";", 
 )
 
-empresas_df.show()
+socios_df.filter(f.col("documento_socio")=='***999999**').show()
