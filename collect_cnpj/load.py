@@ -1,22 +1,41 @@
-from utils.schema import empresas_schema, socios_schema
+from utils.schema import empresas_schema, socios_schema, silver_schema
 from utils.spark_session import init_spark
-from utils.helpers import set_file_name
-import pyspark.sql.functions as f
+from utils.helpers import get_csv_data, set_data_path
+from pyspark.sql.functions import when, col, lit, concat, regexp_replace
 
-data_base = "Socios9"
+def main():
 
-data_type = ".csv"
+    spark = init_spark("load")
+    socios_path = set_data_path("Socios9")
+    empresas_path = set_data_path("Empresas9")
+    socios_df = get_csv_data(spark, socios_path, socios_schema)
+    empresas_df = get_csv_data(spark, empresas_path, empresas_schema)
 
-file_name = set_file_name(data_base, data_type)
+    socios_df = transform_socios_data(socios_df)
+    empresas_df = transform_empresas_data(empresas_df)
 
+    df = join_data(empresas_df, socios_df)
 
-spark = init_spark(data_base)
+    df.write.option("schema", silver_schema).mode("overwrite").parquet("silver/")
 
-socios_df = spark.read.csv(
-    path=f"{data_base}/{file_name}",
-    schema=socios_schema,
-    header=False,
-    sep=";", 
-)
+def transform_socios_data(socios_df):
+    """Apply transformations to the socios DataFrame."""
+    socios_df = socios_df.withColumn(
+        "flag_socio_estrangeiro",
+        when(col("documento_socio") == '***999999**', lit(True)).otherwise(lit(False))
+    )
+    socios_df = socios_df.withColumn("socio_id", concat(col("documento_socio"), col("nome_socio")))
+    socios_df = socios_df.withColumn("socio_id", regexp_replace(col("socio_id"), "\\*", ""))
+    return socios_df.drop("cod_qualificacao_socio", "tipo_socio", "documento_socio", "nome_socio")
 
-socios_df.filter(f.col("documento_socio")=='***999999**').show()
+def transform_empresas_data(empresas_df):
+    """Apply transformations to the empresas DataFrame."""
+    empresas_df = empresas_df.withColumn("cod_porte", col("cod_porte").cast("integer"))
+    return empresas_df.drop("natureza_juridica", "qualificacao_responsavel", "capital_social", "razao_social")
+
+def join_data(empresas_df, socios_df):
+    """Join the empresas and socios DataFrames on the 'cnpj' column."""
+    return empresas_df.join(socios_df, "cnpj", "inner")
+
+if __name__ == "__main__":
+    main()
