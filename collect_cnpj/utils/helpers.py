@@ -6,7 +6,7 @@ from typing import Dict
 
 def set_file_name(data_base: str,
                   data_type: str,
-                  data_value: str = "8") -> str:
+                  data_value: str = "1") -> str:
     """Generate a standardized file name."""
     return f"{data_base}{data_value}{data_type}"
 

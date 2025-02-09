@@ -1,43 +1,42 @@
-from utils.schema import silver_schema, result_schema
-from utils.spark_session import init_spark
+from utils.spark_session import write_to_jdbc, read_from_jdbc
 from pyspark.sql.functions import count, max, col, when, lit
 from pyspark.sql.window import Window
 
-def main():
-    spark = init_spark("transform")
-    df = load_silver_data(spark)
-    df = transform_data(df)
-    write_gold_data(df)
 
-def load_silver_data(spark):
-    """Load data from the silver layer with the specified schema."""
-    return spark.read.schema(silver_schema).parquet("silver/")
+def main():
+    """
+    Main function to load, transform, and write data.
+    """
+    df = read_from_jdbc("silver")
+    df = transform_data(df)
+    write_to_jdbc(df, "result")
+
 
 def transform_data(df):
-    """Apply transformations to the DataFrame."""
+    """
+    Apply transformations to the DataFrame.
+
+    Args:
+    df (DataFrame): The input DataFrame.
+
+    Returns:
+    DataFrame: The transformed DataFrame.
+    """
     window_spec = Window.partitionBy("cnpj")
-    
     df = df.withColumn("qtde_socios", count("socio_id").over(window_spec))
-    
     df = df.withColumn(
-        "flag_socio_estrangeiro", 
+        "flag_socio_estrangeiro",
         max(col("flag_socio_estrangeiro")).over(window_spec)
     )
-    
     df = df.drop("socio_id")
-    
     df = df.dropDuplicates()
-    
     df = df.withColumn(
-        "doc_alvo", 
-        when((col("cod_porte") == 3) & (col("qtde_socios") > 1), lit(True)).otherwise(lit(False))
+        "doc_alvo",
+        when((col("cod_porte") == 3) & (col("qtde_socios") > 1),
+             lit(True)).otherwise(lit(False))
     )
-    
     return df
 
-def write_gold_data(df):
-    """Write the transformed data to the gold layer."""
-    df.write.option("schema", result_schema).mode("overwrite").parquet("gold/")
 
 if __name__ == "__main__":
     main()

@@ -10,7 +10,6 @@ def connect_to_postgres():
             host="127.0.0.1",
             port="5432"
         )
-        print("Conectado ao banco de dados com sucesso!")
         return connection
     except Exception as e:
         print(f"Erro ao conectar ao banco de dados: {e}")

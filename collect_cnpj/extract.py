@@ -63,14 +63,13 @@ def run_extraction_job() -> None:
     """
     data_bases = ["Socios", "Empresas"]
     for db in data_bases:
-        db = db.lower()
-        for i in range(10):
+        for i in range(1):
             zip_file = set_file_name(db, ".zip", str(i))
             csv_file = set_file_name(db, ".csv", str(i))
             download_file(zip_file)
             extract_files(zip_file)
             rename_extracted_file(db, str(i))
-        load_to_postgres(db, csv_file, CSV_PATH)
+            load_to_postgres(db, csv_file, CSV_PATH)
 
 
 if __name__ == "__main__":

@@ -24,6 +24,9 @@ def init_spark(app_name: str) -> SparkSession:
     """
     spark = (SparkSession.builder
              .config("spark.jars", ".jars/postgresql-42.5.0.jar")
+             .config("spark.driver.memory", "30g")
+             .config("spark.executor.memory", "30g")
+             .config("spark.num.executors", "30")
              .appName(app_name)
              .getOrCreate())
     spark.conf.set(
@@ -35,7 +38,7 @@ def init_spark(app_name: str) -> SparkSession:
     return spark
 
 
-def write_to_jdbc(df, data_base: str) -> None:
+def write_to_jdbc(df, data_base: str, partition_column: str = None) -> None:
     """
     Write a Spark DataFrame to a PostgreSQL table.
 
@@ -43,10 +46,15 @@ def write_to_jdbc(df, data_base: str) -> None:
     df (DataFrame): The Spark DataFrame to be written.
     data_base (str): The name of the PostgreSQL database table.
     """
-    df.write.jdbc(
+    writer = df.write.jdbc(
         url=jdbc_url, table=f"public.{data_base}", mode="append",
         properties=properties
     )
+
+    if partition_column:
+        writer = writer.partitionBy(partition_column)
+
+    writer.save()
 
 
 def read_from_jdbc(query: str) -> None:

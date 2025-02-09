@@ -23,7 +23,6 @@ COPY requirements.txt /workspace/
 
 RUN pip3 install --no-cache-dir -r /workspace/requirements.txt && rm -rf /root/.cache/pip
 
-
 RUN wget https://downloads.apache.org/spark/spark-3.4.4/spark-3.4.4-bin-hadoop3.tgz && \
     tar -xvzf spark-3.4.4-bin-hadoop3.tgz && \
     mv spark-3.4.4-bin-hadoop3 /opt/spark && \
@@ -38,9 +37,14 @@ EXPOSE 4040 7077 5432
 
 WORKDIR /workspace
 
+COPY . /workspace/
+
 RUN service postgresql start && \
     until pg_isready; do echo "Aguardando o PostgreSQL..."; sleep 2; done && \
     su - postgres -c "psql -c \"CREATE ROLE spark WITH LOGIN PASSWORD 'spark' SUPERUSER;\""
 
+# Create tables in PostgreSQL
+RUN service postgresql start && \
+    su - postgres -c "psql -d sparkdb -f /workspace/collect_cnpj/utils/create_tables.sql"
 
-CMD ["tail", "-f", "/dev/null"]
+CMD ["python3", "collect_cnpj/app.py"]
