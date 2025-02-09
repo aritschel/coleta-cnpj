@@ -16,7 +16,7 @@ def main():
 
     df = join_data(empresas_df, socios_df)
 
-    write_to_jdbc(df, "silver_table")
+    write_to_jdbc(df, "silver")
 
 
 def transform_socios_data(socios_df):

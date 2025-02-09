@@ -1,4 +1,5 @@
-from utils.spark_session import write_to_jdbc, read_from_jdbc
+from utils.spark_session import write_to_jdbc
+from utils.exec_db import load_from_postgres
 from pyspark.sql.functions import count, max, col, when, lit
 from pyspark.sql.window import Window
 
@@ -7,7 +8,7 @@ def main():
     """
     Main function to load, transform, and write data.
     """
-    df = read_from_jdbc("silver")
+    df = load_from_postgres("silver")
     df = transform_data(df)
     write_to_jdbc(df, "result")
 
@@ -35,6 +36,7 @@ def transform_data(df):
         when((col("cod_porte") == 3) & (col("qtde_socios") > 1),
              lit(True)).otherwise(lit(False))
     )
+    df = df.drop("cod_porte")
     return df
 
 
