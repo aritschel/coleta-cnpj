@@ -1,13 +1,13 @@
 from utils.schema import empresas_schema, socios_schema, silver_schema
 from utils.spark_session import init_spark
-from utils.helpers import load_from_duckdb
+from utils.exec_db import load_from_postgres
 from pyspark.sql.functions import when, col, lit, concat, regexp_replace
 
 
 def main():
+    socios_query = "SELECT * FROM public.socios"
 
-    spark = init_spark("load")
-    socios_df = load_from_duckdb(spark, "socios")
+    socios_df = load_from_postgres(socios_query)
     print(f"DataFrame do Spark: {socios_df.show()}")
 
     # socios_df = transform_socios_data(socios_df)

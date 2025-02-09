@@ -1,35 +1,30 @@
-from utils.connect_db import connect_to_postgres, close_connection
 import os
+from utils.spark_session import init_spark, write_to_jdbc, read_from_jdbc
+from utils.schema import get_schema
 
 
-def load_to_postgres(db_name: str, file_name: str):
-    """Carrega os dados extraídos para o banco PostgreSQL."""
-    # Conectar ao banco de dados
-    connection = connect_to_postgres()
-    if connection is None:
-        return
+def load_to_postgres(data_base: str, file_name: str, layer: str) -> None:
+    """
+    Load a CSV file into a PostgreSQL table using Spark DataFrame.
 
-    try:
-        cursor = connection.cursor()
+    Args:
+    data_base (str): The name of the PostgreSQL database table.
+    file_name (str): The name of the CSV file to be loaded.
+    schema_name (str): The name of the schema to be used for the CSV file.
+    """
+    csv_path = os.path.join(layer, file_name)
+    spark = init_spark("LoadToPostgres")
+    schema = get_schema(data_base)
+    df = spark.read.csv(csv_path, header=False, schema=schema, sep=";")
+    write_to_jdbc(df, data_base)
 
-        table_name = db_name.lower()
-        create_table_query = f"""
-        CREATE TABLE IF NOT EXISTS {table_name} (
-            id SERIAL PRIMARY KEY,
-            nome VARCHAR(100),
-            email VARCHAR(100)
-        );
-        """
-        cursor.execute(create_table_query)
-        connection.commit()
-        CSV_PATH = "bronze/csv"
-        with open(os.path.join(CSV_PATH, file_name), 'r') as file:
-            next(file)
-            cursor.copy_from(file, table_name, sep=',')
-            connection.commit()
-        print(f"Dados carregados na tabela {table_name} com sucesso!")
 
-    except Exception as e:
-        print(f"Erro ao carregar dados no PostgreSQL: {e}")
-    finally:
-        close_connection(connection)
+def load_from_postgres(query: str) -> None:
+    """
+    Load data from a PostgreSQL table into a Spark DataFrame.
+
+    Args:
+    query (str): The SQL query to execute.
+    """
+    df = read_from_jdbc(query)
+    df.show()
