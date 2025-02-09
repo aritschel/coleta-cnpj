@@ -7,11 +7,8 @@ from pyspark.sql.functions import when, col, lit, concat, regexp_replace
 def main():
 
     spark = init_spark("load")
-    spark
     socios_df = load_from_duckdb(spark, "socios")
-    # # empresas_df = load_from_duckdb(spark, "empresas", empresas_schema)
-
-    socios_df.show()
+    print(f"DataFrame do Spark: {socios_df.show()}")
 
     # socios_df = transform_socios_data(socios_df)
     # empresas_df = transform_empresas_data(empresas_df)

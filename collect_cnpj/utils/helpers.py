@@ -104,15 +104,20 @@ def init_layer(layer: str) -> None:
         return ZIP_PATH, CSV_PATH
 
 
-# def load_from_duckdb(spark: SparkSession,
-#                      table_name: str) -> DataFrame:
-#     """Lê os dados do DuckDB diretamente no Spark."""
-#     return spark.read \
-#         .format("jdbc") \
-#         .option("url", "jdbc:duckdb:/bronze/database.duckdb") \
-#         .option("dbtable", "empresas") \
-#         .option("driver", "org.duckdb.DuckDBDriver") \
-#         .load()
+def load_from_duckdb(spark: SparkSession, table_name: str) -> DataFrame:
+    """Read DuckDB data and convert to DataFrame Spark."""
+    query = f"SELECT * FROM {table_name}"
+    print(f"Executando consulta: {query}")
+
+    with duckdb.connect(database="bronze/database.duckdb") as conn:
+        df = conn.execute(query).fetchdf()
+        print(f"Dados obtidos do DuckDB: {df.head()}")
+
+    if df.empty:
+        print("A consulta não retornou dados.")
+        return spark.createDataFrame([])
+
+    return spark.createDataFrame(df)
 
 
 # def write_to_duckdb(df: DataFrame, table_name: str) -> None:
