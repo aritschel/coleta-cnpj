@@ -1,6 +1,4 @@
 requests==2.32.3
 pyspark==3.5.4
 pyyaml
-duckdb==1.2.0
-pytz==2025.1
-numpy==1.24.4
+psycopg2==2.9.10

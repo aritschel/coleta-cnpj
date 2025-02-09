@@ -1,36 +1,46 @@
-# FROM python:3.8.10
+FROM ubuntu:20.04
 
-# # ENV WORKSPACE=/opt/installs
-# # RUN mkdir -p $WORKSPACE
-# # WORKDIR $WORKSPACE
-# RUN apt-get update && apt-get install -y \
-#     default-jdk \
-#     && rm -rf /var/lib/apt/lists/*
-# COPY requirements.txt requirements.txt
-# RUN python3.8 -m pip install -r requirements.txt
-# COPY collect_cnpj .
-# ENV SPARK_HOME=/usr/lib/spark \
-#     JAVA_HOME=/usr/lib/jvm/default-java/jre \
-#     PATH="$SPARK_HOME/bin:$JAVA_HOME/bin:$PATH" \
-#     LD_LIBRARY_PATH=/usr/lib/hadoop/lib/native \
-#     SPARK_LOCAL_IP=10.0.0.58 \
-#     #PYTHONPATH=collect_cnpj
+ENV TZ=America/Sao_Paulo
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+RUN apt-get update && apt-get upgrade -y
 
-# #ENTRYPOINT ["python"]
-# #CMD ["python3.8", "collect_cnpj/"]
-FROM python:3.8.10
-
-RUN apt-get update && apt-get install -y \
-    default-jdk \
+RUN apt-get install -y \
+    openjdk-11-jdk \
+    git \
+    curl \
+    wget \
+    lsb-release \
+    sudo \
+    docker.io \
+    tzdata \
+    python3 \
+    python3-pip \
+    postgresql \
+    postgresql-contrib \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt requirements.txt
-RUN python3.8 -m pip install -r requirements.txt
+COPY requirements.txt /workspace/
 
-COPY collect_cnpj .
-ENV SPARK_HOME=/usr/lib/spark \
-    JAVA_HOME=/usr/lib/jvm/default-java/jre \
-    PATH="$SPARK_HOME/bin:$JAVA_HOME/bin:$PATH" \
-    LD_LIBRARY_PATH=/usr/lib/hadoop/lib/native
+RUN pip3 install --no-cache-dir -r /workspace/requirements.txt && rm -rf /root/.cache/pip
 
-CMD ["python3.8", "collect_cnpj/"]
+
+RUN wget https://downloads.apache.org/spark/spark-3.4.4/spark-3.4.4-bin-hadoop3.tgz && \
+    tar -xvzf spark-3.4.4-bin-hadoop3.tgz && \
+    mv spark-3.4.4-bin-hadoop3 /opt/spark && \
+    rm spark-3.4.4-bin-hadoop3.tgz
+
+ENV SPARK_HOME=/opt/spark
+ENV PATH=$SPARK_HOME/bin:$PATH
+ENV PYTHONPATH=$SPARK_HOME/python:$PYTHONPATH
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+
+EXPOSE 4040 7077 5432
+
+WORKDIR /workspace
+
+RUN service postgresql start && \
+    until pg_isready; do echo "Aguardando o PostgreSQL..."; sleep 2; done && \
+    su - postgres -c "psql -c \"CREATE ROLE spark WITH LOGIN PASSWORD 'spark' SUPERUSER;\""
+
+
+CMD ["tail", "-f", "/dev/null"]

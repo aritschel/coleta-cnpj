@@ -1,6 +1,5 @@
 from pyspark.sql import SparkSession, DataFrame
 import yaml
-import duckdb
 import os
 from typing import Dict
 
@@ -56,38 +55,6 @@ def load_config(path: str) -> Dict:
         raise ValueError(f"Error parsing YAML file: {e}")
 
 
-def load_to_duckdb(data_base: str,
-                   file_type: str,
-                   file_name: str) -> None:
-    """Loads multiple CSV files into a single DuckDB table."""
-    BRONZE_PATH = "bronze"
-    DUCKDB_FILE = os.path.join(BRONZE_PATH, "database.duckdb")
-
-    connection = duckdb.connect(database=DUCKDB_FILE)
-    table_name = data_base.lower()
-
-    try:
-
-        file_path = os.path.join("bronze/csv/", file_name)
-
-        if not os.path.exists(file_path):
-            print(f"File not found: {file_path}")
-
-        query = f"""
-        CREATE TABLE IF NOT EXISTS {table_name} AS
-        FROM read_csv_auto('{file_path}', encoding='latin-1',
-        strict_mode=false)
-        """
-        connection.execute(query)
-
-        print(f"Data from {data_base} loaded into DuckDB table {table_name}")
-
-    except Exception as e:
-        print(f"Error loading {data_base} into DuckDB: {e}")
-    finally:
-        connection.close()
-
-
 def define_paths(layer: str,
                  folder_name: str) -> str:
     """Defines the paths for ZIP and CSV files."""
@@ -102,33 +69,3 @@ def init_layer(layer: str) -> None:
         os.makedirs(ZIP_PATH, exist_ok=True)
         os.makedirs(CSV_PATH, exist_ok=True)
         return ZIP_PATH, CSV_PATH
-
-
-def load_from_duckdb(spark: SparkSession, table_name: str) -> DataFrame:
-    """Read DuckDB data and convert to DataFrame Spark."""
-    query = f"SELECT * FROM {table_name}"
-    print(f"Executando consulta: {query}")
-
-    with duckdb.connect(database="bronze/database.duckdb") as conn:
-        df = conn.execute(query).fetchdf()
-        print(f"Dados obtidos do DuckDB: {df.head()}")
-
-    if df.empty:
-        print("A consulta não retornou dados.")
-        return spark.createDataFrame([])
-
-    return spark.createDataFrame(df)
-
-
-# def write_to_duckdb(df: DataFrame, table_name: str) -> None:
-#     """Escreve os dados transformados no DuckDB (Silver)
-#     diretamente no Spark."""
-#     df.write \
-#         .format("jdbc") \
-#         .option("url", "jdbc:duckdb:bronze/database.duckdb") \
-#         .option("dbtable", table_name) \
-#         .option("driver", "org.duckdb.DuckDBDriver") \
-#         .mode("overwrite") \
-#         .save()
-
-

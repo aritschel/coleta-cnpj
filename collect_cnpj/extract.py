@@ -2,7 +2,8 @@
 from zipfile import ZipFile
 import requests
 import os
-from utils.helpers import set_url, set_file_name, load_to_duckdb, init_layer
+from utils.helpers import set_url, set_file_name, init_layer
+from utils.exec_db import load_to_postgres
 
 ZIP_PATH, CSV_PATH = init_layer("bronze")
 
@@ -42,14 +43,14 @@ def run_extraction_job() -> None:
     """Runs the extraction job."""
     data_bases = ["Socios", "Empresas"]
     for db in data_bases:
-        for i in range(10):
-            zip_file = set_file_name(db, ".zip", str(i))
-            csv_file = set_file_name(db, ".csv", str(i))
-            download_file(zip_file)
-            extract_files(zip_file)
-            rename_extracted_file(db, str(i))
+        # for i in range(10):
+        #     zip_file = set_file_name(db, ".zip", str(i))
+        csv_file = set_file_name(db, ".csv", str(9))
+        #     download_file(zip_file)
+        #     extract_files(zip_file)
+        #     rename_extracted_file(db, str(i))
 
-        load_to_duckdb(db, ".csv", csv_file)
+        load_to_postgres(db, csv_file)
 
 
 if __name__ == "__main__":
