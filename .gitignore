@@ -172,4 +172,9 @@ cython_debug/
 
 .jars/
 
-bronze/
+./bronze/csv/Empresas9.csv
+./bronze/csv/Socios9.csv
+./bronze/zip/Empresas9.zip
+./bronze/zip/Socios9.zip
+
+./bronze/*
